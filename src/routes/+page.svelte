@@ -1,143 +1,61 @@
 <script lang="ts">
-	import { text } from '@sveltejs/kit';
-	import { onMount } from 'svelte';
+	import topics from '$lib/topics.json';
 
-	const topics = [
-		'Pizza',
-		'Smartphone',
-		'Mountain',
-		'Astronaut',
-		'Giraffe',
-		'Volcano',
-		'Umbrella',
-		'Ice cream',
-		'Spaceship',
-		'Robot',
-		'Laptop',
-		'Piano',
-		'Ferris wheel',
-		'Sunflower',
-		'Chocolate',
-		'Beach',
-		'Firefighter',
-		'Library',
-		'Football',
-		'Pirate',
-		'Treasure',
-		'Galaxy',
-		'Kangaroo',
-		'Snowman',
-		'Telescope',
-		'Submarine',
-		'Microscope',
-		'Dinosaur',
-		'Bicycle',
-		'Waterfall',
-		'Detective',
-		'Castle',
-		'Turtle',
-		'Chameleon',
-		'Rainbow',
-		'Unicorn',
-		'Cave',
-		'Meteor',
-		'Ballet dancer',
-		'Mermaid',
-		'Genie',
-		'Carpenter',
-		'Bakery',
-		'Dragon',
-		'Fortress',
-		'Safari',
-		'Comic book',
-		'Scuba diver',
-		'Gladiator',
-		'Library',
-		'Greenhouse',
-		'Cinema',
-		'Arcade',
-		'Train station',
-		'Circus',
-		'Alien',
-		'Hot air balloon',
-		'Zoo',
-		'Opera singer',
-		'Windmill',
-		'Fossil',
-		'Jungle',
-		'Volleyball',
-		'Surfer',
-		'Archaeologist',
-		'Spacesuit',
-		'Banana',
-		'Tiger',
-		'Desert',
-		'Sculptor',
-		'Rock climbing',
-		'Chess board',
-		'Helicopter',
-		'Wind turbine',
-		'Trampoline',
-		'Lighthouse',
-		'Accordion',
-		'Cave explorer',
-		'Magician',
-		'Roller coaster',
-		'Candy shop',
-		'Fireworks',
-		'Water park',
-		'Science lab',
-		'Gymnast',
-		'Blacksmith',
-		'Orchestra',
-		'Sailboat',
-		'Popcorn',
-		'Marathon runner',
-		'Planetarium',
-		'Clock tower',
-		'Haunted house',
-		'Astronomy',
-		'Koala',
-		'Medieval knight',
-		'Comic strip',
-		'Car race',
-		'Wind chime',
-		'Train conductor',
-		'Soccer stadium',
-		'Tea party',
-		'Treasure map',
-		'Hovercraft',
-		'Space station',
-		'Museum',
-		'Carousel',
-		'Fairy tale'
-	];
-
-	let object = 'Spacesuit';
+	let object = $state('');
 	let question = $state('');
-	let answerResponse: Promise<Response> | undefined = $state();
+	let answer = $state('');
+	let guess = $state('');
+	let correct: boolean | null | undefined = $state();
 
-	const updateAnswer = (e: SubmitEvent) => {
+	function newGame() {
+		object = pickRandom(topics);
+		correct = null;
+		answer = '';
+	}
+
+	async function updateAnswer(e: SubmitEvent) {
 		e.preventDefault();
-		console.log(
-			`/question?question=${encodeURIComponent(question)}&object=${encodeURIComponent(object)}`
-		);
-		answerResponse = fetch(
-			`/question?question=${encodeURIComponent(question)}&object=${encodeURIComponent(object)}`
-		);
-	};
+		answer = await (
+			await fetch(
+				`/api/question?question=${encodeURIComponent(question)}&object=${encodeURIComponent(object)}`
+			)
+		).text();
+	}
+
+	async function checkAnswer(e: SubmitEvent) {
+		e.preventDefault();
+		correct =
+			guess === object ||
+			(await (
+				await fetch(
+					`/api/check?guess=${encodeURIComponent(guess)}&answer=${encodeURIComponent(object)}`
+				)
+			).text()) === 'true';
+	}
 
 	function pickRandom<T>(array: Array<T>): T {
 		return array[Math.floor(Math.random() * array.length)];
 	}
 </script>
 
-<button onclick={() => (object = pickRandom(topics))}>New Game</button>
+{object}
+
+<button onclick={newGame}>New Game</button>
+
 <form onsubmit={updateAnswer}>
-	<input type="text" bind:value={question} />
+	<label>
+		Question:
+		<input type="text" bind:value={question} />
+	</label>
 </form>
-Answer: {#await answerResponse then answer}
-	{#await answer?.text() then answer}
-		{answer}
-	{/await}
-{/await}
+
+Answer: {answer}
+
+<form onsubmit={checkAnswer}>
+	<label>
+		Guess:
+		<input type="text" bind:value={guess} />
+	</label>
+</form>
+
+Correct: {correct}
